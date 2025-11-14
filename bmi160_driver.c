@@ -17,7 +17,7 @@ MODULE_DESCRIPTION("A driver for BMI160 IMU sensor");
 	loff_t *o -> file offset pointer
 */
 static ssize_t read_dev(struct file *f, char __user *u, size_t l, loff_t *o){
-	printk("bmi160 - Read is called\n");
+	printk(KERN_DEBUG "bmi160 - Read is called\n");
 	return 0;
 }
 
@@ -32,23 +32,23 @@ static struct file_operations fops = {
 
 /* this function is called only when the module is loaded to kernel */
 static int __init mod_init(void) {
-	printk("bmi160 - Hello, Kernel!\n");
+	printk(KERN_INFO "bmi160 - Hello, Kernel!\n");
 
 	/* passing zero as major is needed to allocate it dynamicly */
 	major_dev_number = register_chrdev(0, "bmi160", &fops);
 	if (major_dev_number < 0){
-		printk("bmi160 - ERROR with allocating device major number");
+		printk(KERN_ERR "bmi160 - ERROR with allocating device major number");
 		return major_dev_number;
 	}
 
-	printk("bmi160 - Major device number: %d\n", major_dev_number);
+	printk(KERN_DEBUG "bmi160 - Major device number: %d\n", major_dev_number);
 	return 0;
 }
 
 /* this function is called only when the module is removed from kernel */
 static void __exit mod_exit(void) {
 	unregister_chrdev(major_dev_number, "bmi160");
-	printk("Goodbye, Kernel\n");
+	printk(KERN_INFO "bmi160 - Goodbye, Kernel\n");
 }
 
 module_init(mod_init);
