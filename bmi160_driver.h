@@ -9,6 +9,8 @@
 #include <linux/fs.h>
 #include <linux/uaccess.h>
 #include <linux/cdev.h>
+#include <linux/i2c.h>
+#include <linux/kernel.h>
 
 
 /* ------------------ META INFO ------------------ */
@@ -20,7 +22,14 @@ MODULE_VERSION("0.1b");
 
 
 /* ------------------ DEFINES ------------------ */
+
+/* device buffer size */
 #define BUFFER_SIZE 256
+
+/* I2C characteristics */
+#define I2C_BUS_NUMBER 1 
+#define BMI160_I2C_ADDRESS 0x68 // default address for BMI160
+#define SLAVE_DEVICE_NAME "BMI160
 
 
 /* ------------------ FILE OPERATIONS PROTOTYPES ------------------ */
@@ -61,6 +70,12 @@ static int open_dev_file(struct inode *node, struct file *f);
 	returns: 0 on success or negative error code
 */
 static int release_dev_file(struct inode *node, struct file *f);
+
+
+/* ------------------ ADDITIONAL FUNCTIONS PROTOTYPES ------------------ */
+
+/* read accel axis from bmi160 imu sensor */
+s16 read_accel_axis(u8 register_low);
 
 
 /* ------------------ MODULE INIT & EXIT PROTOTYPES ------------------ */

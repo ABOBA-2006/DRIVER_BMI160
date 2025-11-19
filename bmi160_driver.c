@@ -12,6 +12,31 @@ static struct cdev bmi_cdev;
 // device class struct
 static struct class *bmi_class;
 
+// adapter to i2c bus (represents the i2c bus itself)
+static struct i2c_adapter *bmi_i2c_adapter = NULL;
+
+// i2c client struct (represents the specific device on the i2c bus)
+static struct i2c_client *bmi_i2c_client = NULL;
+
+// i2c device ID table for NON-DEVICE-TREE systems
+static const struct i2c_device_id bmi_id[]={
+	{SLAVE_DEVICE_NAME, 0},
+	{}
+};
+
+// i2c driver struct
+static struct i2c_driver bmi_driver = {
+	.driver = {
+		.name = SLAVE_DEVICE_NAME,
+		.owner = THIS_MODULE,
+	}
+};
+
+// manual i2c device registration info for NON-DEVICE-TREE systems
+static struct i2c_board_info bmi_i2c_board_info = {
+	I2C_BOARD_INFO(SLAVE_DEVICE_NAME, BMI160_I2C_ADDRESS)
+};
+
 // buffer to store data to be sent to user-space
 static char text_buffer[BUFFER_SIZE] = "";
 
@@ -28,6 +53,9 @@ static ssize_t read_dev_file(struct file *f, char __user *user_buffer, size_t le
 
 	// calculate number of bytes to copy
 	int bytes_to_copy = (len + *offset) < sizeof(text_buffer) ? len : (sizeof(text_buffer) - *offset);
+
+	s16 accel_x = read_accel_axis(0x12); // example: read X-axis acceleration
+	printk(KERN_INFO "bmi160 - Acceleration X-axis: %d\n", accel_x);
 
 	// returns the number of bytes NOT copied (0 means success)
 	int bytes_not_copied = copy_to_user(user_buffer, text_buffer + *offset, bytes_to_copy);
@@ -84,6 +112,14 @@ static struct file_operations fops = {
 };
 
 
+/* ------------------ ADDITIONAL FUNCTIONS ------------------ */
+
+s16 read_accel_axis(u8 register_low){
+	u8 low = i2c_smbus_read_byte_data(bmi_i2c_client, register_low);
+	u8 high = i2c_smbus_read_byte_data(bmi_i2c_client, register_low + 1);
+	return (s16)((high << 8) | low);
+}
+
 /* ------------------ MODULE INIT & EXIT ------------------ */
 
 static int __init mod_init(void) {
@@ -125,6 +161,22 @@ static int __init mod_init(void) {
 		goto delete_class;
 	}
 
+	// test version of i2c client and driver registration
+	bmi_i2c_adapter = i2c_get_adapter(I2C_BUS_NUMBER);
+	if (bmi_i2c_adapter != NULL){
+		bmi_i2c_client = i2c_acpi_new_device(bmi_i2c_adapter, &bmi_i2c_board_info);
+		if (bmi_i2c_client != NULL){
+			if(i2c_add_driver(&bmi_driver) != -1){
+				status = 0;
+			}else{
+				printk(KERN_ERR "bmi160 - ERROR registering i2c driver\n");
+				status = -ENODEV;
+				goto delete_class;
+			}
+		}
+		i2c_put_adapter(bmi_i2c_adapter); // release the adapter
+	}
+
 	return 0; // success
 
 delete_class:
@@ -140,6 +192,8 @@ free_devnr:
 static void __exit mod_exit(void) {
 	printk(KERN_INFO "bmi160 - Goodbye, Kernel\n");
 
+	i2c_unregister_device(bmi_i2c_client);
+	i2c_del_driver(&bmi_driver);
 	// remove device node
 	device_destroy(bmi_class, dev_nr);
 	// unregister device class
