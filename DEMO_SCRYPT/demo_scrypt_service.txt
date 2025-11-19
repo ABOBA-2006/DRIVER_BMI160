@@ -1,0 +1,26 @@
+# Create the demo_driver.service in /etc/systemd/system/
+# The service scrypt is below
+
+[Unit]
+Description=BMI160 Demo Script
+After=network.target
+
+[Service]
+Type=simple
+User=anton
+WorkingDirectory=/home/anton/DRIVER_BMI160/DEMO_SCRYPT
+ExecStart=/home/anton/DRIVER_BMI160/DEMO_SCRYPT/venv/bin/python demo_scrypt.py
+Restart=always
+RestartSec=5
+StandardOutput=syslog
+StandardError=syslog
+SyslogIdentifier=bmi160_demo
+
+[Install]
+WantedBy=multi-user.target
+
+
+# Than some system commands:
+#	sudo systemctl daemon-reload <--> reload systemd after editing
+#	sudo systemctl enable/disable demo_driver.service <--> enable/disable on boot
+#	sudo systemctl start/stop demo_driver.service <--> start/stop the service

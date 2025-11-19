@@ -6,3 +6,4 @@
 *.symvers
 *.mod
 .vscode/
+DEMO_SCRYPT/venv/
