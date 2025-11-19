@@ -29,7 +29,7 @@ MODULE_VERSION("0.1b");
 /* I2C characteristics */
 #define I2C_BUS_NUMBER 1 
 #define BMI160_I2C_ADDRESS 0x68 // default address for BMI160
-#define SLAVE_DEVICE_NAME "BMI160
+#define SLAVE_DEVICE_NAME "BMI160"
 
 
 /* ------------------ FILE OPERATIONS PROTOTYPES ------------------ */

@@ -146,7 +146,7 @@ static int __init mod_init(void) {
 	printk(KERN_DEBUG "bmi160 - Major device number: %d\n", MAJOR(dev_nr));
 
 	// create device class in /sys/class/
-	bmi_class = class_create(THIS_MODULE, "bmi160_class");
+	bmi_class = class_create("bmi160_class");
 	// check for failure
 	if (!bmi_class){
 		printk(KERN_ERR "bmi160 - ERROR with creating device class");
@@ -164,7 +164,7 @@ static int __init mod_init(void) {
 	// test version of i2c client and driver registration
 	bmi_i2c_adapter = i2c_get_adapter(I2C_BUS_NUMBER);
 	if (bmi_i2c_adapter != NULL){
-		bmi_i2c_client = i2c_acpi_new_device(bmi_i2c_adapter, &bmi_i2c_board_info);
+		bmi_i2c_client = i2c_new_client_device(bmi_i2c_adapter, &bmi_i2c_board_info);
 		if (bmi_i2c_client != NULL){
 			if(i2c_add_driver(&bmi_driver) != -1){
 				status = 0;
