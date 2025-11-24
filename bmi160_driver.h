@@ -31,29 +31,23 @@ MODULE_VERSION("0.1b");
 #define BMI160_I2C_ADDRESS 0x68 // default address for BMI160
 #define SLAVE_DEVICE_NAME "BMI160"
 
+/* IOCTL command numbers */
+// 'B' is a magic number to distinguish our commands from others
+#define BMI160_IOCTL_MAGIC 'B'
+#define IOCTL_GET_ANGLE _IOR(BMI160_IOCTL_MAGIC, 1, int32_t*) // IOR -> copy kernel to user space
+#define IOCTL_CALIBRATE_SENSOR _IO(BMI160_IOCTL_MAGIC, 2) // IO -> no data transfer
+
 
 /* ------------------ FILE OPERATIONS PROTOTYPES ------------------ */
 
-/* READ:
-	@f -> kernel file structure for the opened device
-	@user_buffer -> buffer in user space where data must be copied
-					(__user tells kernel that the pointer lives in user-space)
-	@len -> number of bytes that user-space wants to read
-	@offset -> file offset pointer
+/* IOCTL handler for device node (ex. user space program sends control commands)
+    @f -> kernel file structure representing the opened device
+    @cmd -> ioctl command number provided by user space
+    @args -> pointer or integer argument passed from user space
 
-	returns: number of bytes read or negative error code
+    returns: command-specific value on success or negative error code
 */
-static ssize_t read_dev_file(struct file *f, char __user *user_buffer, size_t len, loff_t *offset);
-
-/* WRITE:
-	@f -> kernel file structure for the opened device
-	@user_buffer -> data coming from user space
-	@len -> number of bytes that user-space wants to write
-	@offset -> write position in the buffer
-
-	returns: number of bytes written or negative error code
-*/
-static ssize_t write_dev_file(struct file *f, const char __user *user_buffer, size_t len, loff_t *offset);
+static long int ioctl_dev_file(struct file *f, unsigned int cmd, unsigned long args);
 
 /* OPEN function for device node (ex. user space program opens the file)
 	@node -> pointer to inode struct representing this device in the kernel

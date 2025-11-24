@@ -37,59 +37,24 @@ static struct i2c_board_info bmi_i2c_board_info = {
 	I2C_BOARD_INFO(SLAVE_DEVICE_NAME, BMI160_I2C_ADDRESS)
 };
 
-// buffer to store data to be sent to user-space
-static char text_buffer[BUFFER_SIZE] = "";
-
 
 /* ------------------ FILE OPERATIONS ------------------ */
 
-static ssize_t read_dev_file(struct file *f, char __user *user_buffer, size_t len, loff_t *offset){
-	printk(KERN_INFO "bmi160 - Read is called\n");
+static long int ioctl_dev_file(struct file *f, unsigned int cmd, unsigned long args){
+	printk(KERN_INFO "bmi160 - IOCTL is called\n");
 
-	// check if offset is beyond the buffer size
-	if (*offset >= sizeof(text_buffer)){
-		return 0; // EOF
+	switch (cmd){
+		case IOCTL_GET_ANGLE:
+			// TODO
+			break;
+		case IOCTL_CALIBRATE_SENSOR:
+			// TODO
+			break;
+		default:
+			return -EOPNOTSUPP; // command not supported
 	}
-
-	// calculate number of bytes to copy
-	int bytes_to_copy = (len + *offset) < sizeof(text_buffer) ? len : (sizeof(text_buffer) - *offset);
-
-	s16 accel_x = read_accel_axis(0x12); // example: read X-axis acceleration
-	printk(KERN_INFO "bmi160 - Acceleration X-axis: %d\n", accel_x);
-
-	// returns the number of bytes NOT copied (0 means success)
-	int bytes_not_copied = copy_to_user(user_buffer, text_buffer + *offset, bytes_to_copy);
-	if (bytes_not_copied){
-		printk(KERN_WARNING "bmi160 - Could not copy all bytes to user-space\n");
-	}
-
-	// update the offset
-	*offset += bytes_to_copy;
-
-	return bytes_to_copy;
-}
-
-static ssize_t write_dev_file(struct file *f, const char __user *user_buffer, size_t len, loff_t *offset){
-	printk(KERN_INFO "bmi160 - Write is called\n");
-
-	// check if offset is beyond the buffer size
-	if (*offset >= sizeof(text_buffer)){
-		return -ENOSPC; // No space left on device
-	}
-
-	// calculate number of bytes to copy
-	int bytes_to_copy = (len + *offset) < sizeof(text_buffer) ? len : (sizeof(text_buffer) - *offset);
-
-	// returns the number of bytes NOT copied (0 means success)
-	int bytes_not_copied = copy_from_user(text_buffer + *offset, user_buffer, bytes_to_copy);
-	if (bytes_not_copied){
-		printk(KERN_WARNING "bmi160 - Could not copy all bytes from user-space\n");
-	}
-
-	// update the offset
-	*offset += bytes_to_copy;
-
-	return bytes_to_copy;
+	
+	return 0;
 }
 
 static int open_dev_file(struct inode *node, struct file *f){
@@ -104,8 +69,7 @@ static int release_dev_file(struct inode *node, struct file *f){
 
 /* File operations supported by this character device */
 static struct file_operations fops = {
-	.read = read_dev_file,
-	.write = write_dev_file,
+	.unlocked_ioctl = ioctl_dev_file,
 	.open = open_dev_file,
 	.release = release_dev_file,
 	.owner = THIS_MODULE
