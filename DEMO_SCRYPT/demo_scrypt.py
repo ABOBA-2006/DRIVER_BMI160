@@ -1,14 +1,52 @@
+import fcntl
+import struct
 from luma.core.interface.serial import i2c
 from luma.oled.device import ssd1306
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw
+import math
 import time
+
+BMI160_IOC_MAGIC = ord('B')
+IOCTL_GET_ACCEL_X = 0x80044201  # _IOR(BMI160_IOC_MAGIC, 1, s16)
+IOCTL_GET_ACCEL_Y = 0x80044202  # _IOR(BMI160_IOC_MAGIC, 2, s16)
+IOCTL_GET_ACCEL_Z = 0x80044203  # _IOR(BMI160_IOC_MAGIC, 3, s16)
 
 serial = i2c(port=0, address=0x3C)   # 0x3C is the address of oled display
 device = ssd1306(serial, width=128, height=32)
 
+def read_accel(fd, ioctl_cmd):
+    buf = bytearray(2)  # s16 = 2 bytes
+    fcntl.ioctl(fd, ioctl_cmd, buf)
+    val, = struct.unpack("h", buf)
+    return val
+
+def get_pitch_roll():
+    with open("/dev/bmi160_device", "rb", buffering=0) as f:
+        ax = read_accel(f, IOCTL_GET_ACCEL_X)
+        ay = read_accel(f, IOCTL_GET_ACCEL_Y)
+        az = read_accel(f, IOCTL_GET_ACCEL_Z)
+
+    # Convert raw values to g
+    ax_g = ax / 16384.0
+    ay_g = ay / 16384.0
+    az_g = az / 16384.0
+
+    # Calculate pitch and roll
+    pitch = math.atan2(-ax_g, math.sqrt(ay_g**2 + az_g**2)) * 180.0 / math.pi
+    roll  = math.atan2(ay_g, az_g) * 180.0 / math.pi
+
+    return pitch, roll
+
 while True:
+    try:
+        pitch, roll = get_pitch_roll()
+    except Exception as e:
+        pitch, roll = 0.0, 0.0
+
     img = Image.new("1", (128, 32), "black")
     draw = ImageDraw.Draw(img)
-    draw.text((10, 5), "48", fill="white")
+    draw.text((10, 5), f"Pitch: {pitch:.2f}", fill="white")
+    draw.text((10, 20), f"Roll: {roll:.2f}", fill="white")
     device.display(img)
-    time.sleep(1)
+
+    time.sleep(0.1)

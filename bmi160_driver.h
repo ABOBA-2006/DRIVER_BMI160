@@ -34,9 +34,15 @@ MODULE_VERSION("0.1b");
 /* IOCTL command numbers */
 // 'B' is a magic number to distinguish our commands from others
 #define BMI160_IOCTL_MAGIC 'B'
-#define IOCTL_GET_ANGLE _IOR(BMI160_IOCTL_MAGIC, 1, int32_t*) // IOR -> copy kernel to user space
-#define IOCTL_CALIBRATE_SENSOR _IO(BMI160_IOCTL_MAGIC, 2) // IO -> no data transfer
+#define IOCTL_GET_ACCEL_X _IOR(BMI160_IOCTL_MAGIC, 1, s16) // IOR -> copy kernel to user space
+#define IOCTL_GET_ACCEL_Y _IOR(BMI160_IOCTL_MAGIC, 2, s16)
+#define IOCTL_GET_ACCEL_Z _IOR(BMI160_IOCTL_MAGIC, 3, s16)
+#define IOCTL_CALIBRATE_SENSOR _IO(BMI160_IOCTL_MAGIC, 4) // IO -> no data transfer
 
+/*BMI160 register adresses*/
+#define BMI160_ACCEL_X 0x12
+#define BMI160_ACCEL_Y 0x14
+#define BMI160_ACCEL_Z 0x16
 
 /* ------------------ FILE OPERATIONS PROTOTYPES ------------------ */
 
@@ -70,7 +76,6 @@ static int release_dev_file(struct inode *node, struct file *f);
 
 /* read accel axis from bmi160 imu sensor */
 s16 read_accel_axis(u8 register_low);
-
 
 /* ------------------ MODULE INIT & EXIT PROTOTYPES ------------------ */
 

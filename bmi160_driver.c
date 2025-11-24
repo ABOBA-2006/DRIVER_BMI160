@@ -44,12 +44,31 @@ static long int ioctl_dev_file(struct file *f, unsigned int cmd, unsigned long a
 	printk(KERN_INFO "bmi160 - IOCTL is called\n");
 
 	switch (cmd){
-		case IOCTL_GET_ANGLE:
-			// TODO
+		case IOCTL_GET_ACCEL_X:{
+			s16 accel_x = read_accel_axis(BMI160_ACCEL_X);
+			if (copy_to_user((s16 __user *)args, &accel_x, sizeof(s16)))
+				return -EFAULT; // failed to copy data to user space
 			break;
+		}
+
+		case IOCTL_GET_ACCEL_Y:{
+			s16 accel_y = read_accel_axis(BMI160_ACCEL_Y);
+			if (copy_to_user((s16 __user *)args, &accel_y, sizeof(s16)))
+				return -EFAULT; // failed to copy data to user space
+			break;
+		}
+
+		case IOCTL_GET_ACCEL_Z:{
+			s16 accel_z = read_accel_axis(BMI160_ACCEL_Z);
+			if (copy_to_user((s16 __user *)args, &accel_z, sizeof(s16)))
+				return -EFAULT; // failed to copy data to user space
+			break;
+		}
+			
 		case IOCTL_CALIBRATE_SENSOR:
 			// TODO
 			break;
+			
 		default:
 			return -EOPNOTSUPP; // command not supported
 	}
@@ -83,6 +102,7 @@ s16 read_accel_axis(u8 register_low){
 	u8 high = i2c_smbus_read_byte_data(bmi_i2c_client, register_low + 1);
 	return (s16)((high << 8) | low);
 }
+
 
 /* ------------------ MODULE INIT & EXIT ------------------ */
 
