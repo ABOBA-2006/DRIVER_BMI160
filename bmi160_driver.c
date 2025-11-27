@@ -67,9 +67,14 @@ static long int ioctl_dev_file(struct file *f, unsigned int cmd, unsigned long a
 			break;
 		}
 			
-		case IOCTL_CALIBRATE_SENSOR:
-			// TODO
+		case IOCTL_CALIBRATE_SENSOR:{
+			printk(KERN_INFO "bmi160 - CALIBRATE_SENSOR is called");
+			bmi160_calibrate_sensor();
+			s16 flag = 1;
+			if (copy_to_user((s16 __user *)args, &flag, sizeof(s16)))
+				return -EFAULT; // failed to copy data to user space
 			break;
+		}
 			
 		default:
 			return -EOPNOTSUPP; // command not supported
@@ -112,6 +117,7 @@ static char *bmi160_devnode(const struct device *dev, umode_t *mode){
 }
 
 static int bmi160_init_sensor(void){
+	const int init_delay = 50; // small delay after mode set
 	int ret;
 
 	// set the normal mode
@@ -123,7 +129,7 @@ static int bmi160_init_sensor(void){
 	}
 		
 	// small delay to give some time for BMI160 to initialize properly
-	mdelay(INIT_DELAY);
+	mdelay(init_delay);
 
 	// set the update frequency
 	ret = i2c_smbus_write_byte_data(bmi_i2c_client, BMI160_CONF_REGISTER, UPDATE_100HZ);
@@ -142,6 +148,20 @@ static int bmi160_init_sensor(void){
 	}
 
 	return 0;
+}
+
+static void bmi160_calibrate_sensor(void){
+	mdelay(100);
+
+	i2c_smbus_write_byte_data(bmi_i2c_client, 0x69, 0x3D);
+
+	i2c_smbus_write_byte_data(bmi_i2c_client, 0x7E, 0x03);
+
+	mdelay(3000);
+
+	i2c_smbus_write_byte_data(bmi_i2c_client, 0x77, 0x40);
+
+	mdelay(50);
 }
 
 /* ------------------ MODULE INIT & EXIT ------------------ */

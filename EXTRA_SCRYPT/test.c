@@ -3,6 +3,7 @@
 
 // emulate kernel types
 typedef int16_t s16;
+typedef int8_t s8;
 
 // IOCTL macros for userspace
 #define _IOC_NRBITS    8
@@ -24,14 +25,16 @@ typedef int16_t s16;
 
 #define BMI160_IOCTL_MAGIC 'B'
 
-// Now define your IOCTLs
+// IOCTLs
 #define IOCTL_GET_ACCEL_X _IOR(BMI160_IOCTL_MAGIC, 1, s16)
 #define IOCTL_GET_ACCEL_Y _IOR(BMI160_IOCTL_MAGIC, 2, s16)
 #define IOCTL_GET_ACCEL_Z _IOR(BMI160_IOCTL_MAGIC, 3, s16)
+#define IOCTL_CALIBRATE_SENSOR _IOR(BMI160_IOCTL_MAGIC, 4, s16) 
 
 int main() {
     printf("IOCTL_GET_ACCEL_X = 0x%X\n", IOCTL_GET_ACCEL_X);
     printf("IOCTL_GET_ACCEL_Y = 0x%X\n", IOCTL_GET_ACCEL_Y);
     printf("IOCTL_GET_ACCEL_Z = 0x%X\n", IOCTL_GET_ACCEL_Z);
+    printf("IOCTL_CALIBRATE_SENSOR = 0x%X\n", IOCTL_CALIBRATE_SENSOR);
     return 0;
 }
