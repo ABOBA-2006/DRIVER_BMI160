@@ -1,4 +1,5 @@
 #include "bmi160_driver.h"
+#include <linux/delay.h>
 
 
 /* ------------------ GLOBAL VARIABLES ------------------ */
@@ -41,25 +42,26 @@ static struct i2c_board_info bmi_i2c_board_info = {
 /* ------------------ FILE OPERATIONS ------------------ */
 
 static long int ioctl_dev_file(struct file *f, unsigned int cmd, unsigned long args){
-	printk(KERN_INFO "bmi160 - IOCTL is called\n");
-
 	switch (cmd){
 		case IOCTL_GET_ACCEL_X:{
-			s16 accel_x = read_accel_axis(BMI160_ACCEL_X);
+			printk(KERN_INFO "bmi160 - GET_ACCEL_X is called");
+			s16 accel_x = read_accel_axis(BMI160_ACCEL_X_REGISTER);
 			if (copy_to_user((s16 __user *)args, &accel_x, sizeof(s16)))
 				return -EFAULT; // failed to copy data to user space
 			break;
 		}
 
 		case IOCTL_GET_ACCEL_Y:{
-			s16 accel_y = read_accel_axis(BMI160_ACCEL_Y);
+			printk(KERN_INFO "bmi160 - GET_ACCEL_Y is called");
+			s16 accel_y = read_accel_axis(BMI160_ACCEL_Y_REGISTER);
 			if (copy_to_user((s16 __user *)args, &accel_y, sizeof(s16)))
 				return -EFAULT; // failed to copy data to user space
 			break;
 		}
 
 		case IOCTL_GET_ACCEL_Z:{
-			s16 accel_z = read_accel_axis(BMI160_ACCEL_Z);
+			printk(KERN_INFO "bmi160 - GET_ACCEL_Z is called");
+			s16 accel_z = read_accel_axis(BMI160_ACCEL_Z_REGISTER);
 			if (copy_to_user((s16 __user *)args, &accel_z, sizeof(s16)))
 				return -EFAULT; // failed to copy data to user space
 			break;
@@ -103,6 +105,44 @@ s16 read_accel_axis(u8 register_low){
 	return (s16)((high << 8) | low);
 }
 
+static char *bmi160_devnode(const struct device *dev, umode_t *mode){
+	if (mode)
+		*mode = 0666; // rw-rw-rw-
+	return NULL;
+}
+
+static int bmi160_init_sensor(void){
+	int ret;
+
+	// set the normal mode
+	ret = i2c_smbus_write_byte_data(bmi_i2c_client, BMI160_MODE_REGISTER, NORMAL_MODE);
+
+	if (ret < 0){
+		printk(KERN_ERR "bmi160 - Failed to set the mode to sensor");
+		return ret;
+	}
+		
+	// small delay to give some time for BMI160 to initialize properly
+	mdelay(INIT_DELAY);
+
+	// set the update frequency
+	ret = i2c_smbus_write_byte_data(bmi_i2c_client, BMI160_CONF_REGISTER, UPDATE_100HZ);
+
+	if (ret < 0){
+		printk(KERN_ERR "bmi160 - Failed to set the update frequency");
+		return ret;
+	}
+
+	// set the accel range
+	i2c_smbus_write_byte_data(bmi_i2c_client, BMI160_ACCEL_RANGE_REGISTER, ACCEL_RANGE_2G);
+
+	if (ret < 0){
+		printk(KERN_ERR "bmi160 - Failed to set the accel range");
+		return ret;
+	}
+
+	return 0;
+}
 
 /* ------------------ MODULE INIT & EXIT ------------------ */
 
@@ -137,6 +177,8 @@ static int __init mod_init(void) {
 		status = -ENOMEM;
 		goto delete_cdev;
 	}
+	// give access to the dev file for all users
+	bmi_class->devnode = bmi160_devnode;
 
 	// create the actual device node in /dev/ + check for failure
 	if (!device_create(bmi_class, NULL, dev_nr, NULL, "bmi160_device")){
@@ -151,7 +193,8 @@ static int __init mod_init(void) {
 		bmi_i2c_client = i2c_new_client_device(bmi_i2c_adapter, &bmi_i2c_board_info);
 		if (bmi_i2c_client != NULL){
 			if(i2c_add_driver(&bmi_driver) != -1){
-				status = 0;
+				status = bmi160_init_sensor();
+				if (status < 0) goto delete_class;
 			}else{
 				printk(KERN_ERR "bmi160 - ERROR registering i2c driver\n");
 				status = -ENODEV;

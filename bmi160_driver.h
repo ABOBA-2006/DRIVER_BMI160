@@ -40,9 +40,16 @@ MODULE_VERSION("0.1b");
 #define IOCTL_CALIBRATE_SENSOR _IO(BMI160_IOCTL_MAGIC, 4) // IO -> no data transfer
 
 /*BMI160 register adresses*/
-#define BMI160_ACCEL_X 0x12
-#define BMI160_ACCEL_Y 0x14
-#define BMI160_ACCEL_Z 0x16
+#define BMI160_ACCEL_X_REGISTER 0x12
+#define BMI160_ACCEL_Y_REGISTER 0x14
+#define BMI160_ACCEL_Z_REGISTER 0x16
+#define BMI160_MODE_REGISTER 0x7E
+#define NORMAL_MODE 0x11
+#define BMI160_CONF_REGISTER 0x40
+#define UPDATE_100HZ 0x28
+#define BMI160_ACCEL_RANGE_REGISTER 0x41
+#define ACCEL_RANGE_2G 0x03 
+#define INIT_DELAY 50 // 50 ms delay to get time for BMI160 to init succesfully
 
 /* ------------------ FILE OPERATIONS PROTOTYPES ------------------ */
 
@@ -76,6 +83,12 @@ static int release_dev_file(struct inode *node, struct file *f);
 
 /* read accel axis from bmi160 imu sensor */
 s16 read_accel_axis(u8 register_low);
+
+/* function to set the file permissions  */
+static char *bmi160_devnode(const struct device *dev, umode_t *mode);
+
+/* send init params to bmi160 sensor such as: mode, frequency, accel range */
+static int bmi160_init_sensor(void);
 
 /* ------------------ MODULE INIT & EXIT PROTOTYPES ------------------ */
 

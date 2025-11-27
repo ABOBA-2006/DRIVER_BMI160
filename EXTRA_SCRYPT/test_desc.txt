@@ -1,0 +1,1 @@
+This small scrypt is needed to get the Hex values of ioctl commands used in driver for bmi160

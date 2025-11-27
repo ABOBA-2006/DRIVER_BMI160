@@ -7,9 +7,9 @@ import math
 import time
 
 BMI160_IOC_MAGIC = ord('B')
-IOCTL_GET_ACCEL_X = 0x80044201  # _IOR(BMI160_IOC_MAGIC, 1, s16)
-IOCTL_GET_ACCEL_Y = 0x80044202  # _IOR(BMI160_IOC_MAGIC, 2, s16)
-IOCTL_GET_ACCEL_Z = 0x80044203  # _IOR(BMI160_IOC_MAGIC, 3, s16)
+IOCTL_GET_ACCEL_X = 0x80024201  # _IOR(BMI160_IOC_MAGIC, 1, s16)
+IOCTL_GET_ACCEL_Y = 0x80024202  # _IOR(BMI160_IOC_MAGIC, 2, s16)
+IOCTL_GET_ACCEL_Z = 0x80024203  # _IOR(BMI160_IOC_MAGIC, 3, s16)
 
 serial = i2c(port=0, address=0x3C)   # 0x3C is the address of oled display
 device = ssd1306(serial, width=128, height=32)
@@ -21,10 +21,10 @@ def read_accel(fd, ioctl_cmd):
     return val
 
 def get_pitch_roll():
-    with open("/dev/bmi160_device", "rb", buffering=0) as f:
-        ax = read_accel(f, IOCTL_GET_ACCEL_X)
-        ay = read_accel(f, IOCTL_GET_ACCEL_Y)
-        az = read_accel(f, IOCTL_GET_ACCEL_Z)
+    fd = open("/dev/bmi160_device", "rb", buffering=0)
+    ax = read_accel(fd, IOCTL_GET_ACCEL_X)
+    ay = read_accel(fd, IOCTL_GET_ACCEL_Y)
+    az = read_accel(fd, IOCTL_GET_ACCEL_Z)
 
     # Convert raw values to g
     ax_g = ax / 16384.0
@@ -41,7 +41,7 @@ while True:
     try:
         pitch, roll = get_pitch_roll()
     except Exception as e:
-        pitch, roll = 0.0, 0.0
+        pitch, roll = -10.0, -10.0
 
     img = Image.new("1", (128, 32), "black")
     draw = ImageDraw.Draw(img)
