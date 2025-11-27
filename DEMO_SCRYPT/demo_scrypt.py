@@ -58,14 +58,28 @@ while True:
             device.display(img)
 
             fd = open("/dev/bmi160_device", "rb", buffering=0)
-            send_calibrate(fd)
+            status = send_calibrate(fd)
+
+            if status != 0:
+                img = Image.new("1", (128, 32), "black")
+                draw = ImageDraw.Draw(img)
+                draw.text((10, 5), "CALIBRATION\n BAD", fill="white")
+                device.display(img)
+            else:
+                img = Image.new("1", (128, 32), "black")
+                draw = ImageDraw.Draw(img)
+                draw.text((10, 5), "CALIBRATION\n SUCCESSFULL", fill="white")
+                device.display(img)
+
+            time.sleep(2)
+
         if user_input == "exit":
             os._exit(0)
 
     try:
         pitch = get_pitch_roll()
     except Exception as e:
-        pitch = -10.0, -10.0
+        pitch = -10.00
 
     img = Image.new("1", (128, 32), "black")
     draw = ImageDraw.Draw(img)

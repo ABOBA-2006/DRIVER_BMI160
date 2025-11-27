@@ -39,16 +39,23 @@ MODULE_VERSION("0.1b");
 #define IOCTL_GET_ACCEL_Z _IOR(BMI160_IOCTL_MAGIC, 3, s16)
 #define IOCTL_CALIBRATE_SENSOR _IOR(BMI160_IOCTL_MAGIC, 4, s16)
 
-/*BMI160 register adresses*/
+/* BMI160 register adresses */
 #define BMI160_ACCEL_X_REGISTER 0x12
 #define BMI160_ACCEL_Y_REGISTER 0x14
 #define BMI160_ACCEL_Z_REGISTER 0x16
 #define BMI160_MODE_REGISTER 0x7E
-#define NORMAL_MODE 0x11
 #define BMI160_CONF_REGISTER 0x40
-#define UPDATE_100HZ 0x28
 #define BMI160_ACCEL_RANGE_REGISTER 0x41
+#define BMI160_FOC_CONF_REGISTER 0x69
+#define BMI160_ACCEL_OFFSET_USE_REGISTER 0x77
+
+/* BMI160 register values */
+#define NORMAL_MODE 0x11
+#define FOC_MODE 0x03
 #define ACCEL_RANGE_2G 0x03 
+#define UPDATE_100HZ 0x28
+#define ENABLE_ACCEL_FOC 0x3D
+#define USE_ACCEL_OFFSET 0x40
 
 /* ------------------ FILE OPERATIONS PROTOTYPES ------------------ */
 
@@ -90,7 +97,7 @@ static char *bmi160_devnode(const struct device *dev, umode_t *mode);
 static int bmi160_init_sensor(void);
 
 /* send the calibrate command to FOC register (Fast Offset Compensation) to start calibration proccess */
-static void bmi160_calibrate_sensor(void);
+static int  bmi160_calibrate_sensor(void);
 
 /* ------------------ MODULE INIT & EXIT PROTOTYPES ------------------ */
 

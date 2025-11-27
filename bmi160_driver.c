@@ -69,8 +69,7 @@ static long int ioctl_dev_file(struct file *f, unsigned int cmd, unsigned long a
 			
 		case IOCTL_CALIBRATE_SENSOR:{
 			printk(KERN_INFO "bmi160 - CALIBRATE_SENSOR is called");
-			bmi160_calibrate_sensor();
-			s16 flag = 1;
+			s16 flag = (s16)bmi160_calibrate_sensor();
 			if (copy_to_user((s16 __user *)args, &flag, sizeof(s16)))
 				return -EFAULT; // failed to copy data to user space
 			break;
@@ -150,18 +149,39 @@ static int bmi160_init_sensor(void){
 	return 0;
 }
 
-static void bmi160_calibrate_sensor(void){
-	mdelay(100);
+static int bmi160_calibrate_sensor(void){
+	const int pre_cal_delay = 1500; // delay to give user some time to stabilize the imu sensor berfore calibration
+	const int cal_delay = 1500; // delay after calling foc to apply it (avg 250ms)
+	int ret;
 
-	i2c_smbus_write_byte_data(bmi_i2c_client, 0x69, 0x3D);
+	mdelay(pre_cal_delay);
 
-	i2c_smbus_write_byte_data(bmi_i2c_client, 0x7E, 0x03);
+	// set the FOC->enable to config (FOC = Fast Offset Compensation)
+	ret = i2c_smbus_write_byte_data(bmi_i2c_client, BMI160_FOC_CONF_REGISTER, ENABLE_ACCEL_FOC);
 
-	mdelay(3000);
+	if (ret < 0){
+		printk(KERN_ERR "bmi160 - Failed to set the foc enable");
+		return ret;
+	}
 
-	i2c_smbus_write_byte_data(bmi_i2c_client, 0x77, 0x40);
+	// set the FOC MODE (MUST BE IN THE NORMAL MODE BEFORE)
+	ret = i2c_smbus_write_byte_data(bmi_i2c_client, BMI160_MODE_REGISTER, FOC_MODE);
 
-	mdelay(50);
+	if (ret < 0){
+		printk(KERN_ERR "bmi160 - Failed to start FOC");
+		return ret;
+	}
+
+	mdelay(cal_delay);
+
+	ret = i2c_smbus_write_byte_data(bmi_i2c_client, BMI160_ACCEL_OFFSET_USE_REGISTER, USE_ACCEL_OFFSET);
+
+	if (ret < 0){
+		printk(KERN_ERR "bmi160 - Failed to enable using accel offsets");
+		return ret;
+	}
+
+	return ret;
 }
 
 /* ------------------ MODULE INIT & EXIT ------------------ */
