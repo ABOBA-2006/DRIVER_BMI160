@@ -24,11 +24,22 @@ def read_accel(fd, ioctl_cmd):
     val, = struct.unpack("h", buf)
     return val
 
-def send_calibrate(fd):
+def send_calibrate():
+    fd = open("/dev/bmi160_device", "rb", buffering=0)
     buf = bytearray(2) # s16 = 2 bytes
     fcntl.ioctl(fd, IOCTL_CALIBRATE_SENSOR, buf)
     val, = struct.unpack("h", buf)
     return val
+
+def draw_centered_text(draw, text):
+    bbox = draw.textbbox((0, 0), text)
+    text_width = bbox[2] - bbox[0]
+    text_height = bbox[3] - bbox[1]
+
+    x = (device.width - text_width) // 2
+    y = (device.height - text_height) // 2
+
+    draw.text((x, y), text, fill="white")
 
 def get_pitch_roll():
     fd = open("/dev/bmi160_device", "rb", buffering=0)
@@ -54,22 +65,21 @@ while True:
 
             img = Image.new("1", (128, 32), "black")
             draw = ImageDraw.Draw(img)
-            draw.text((10, 5), "CALIBRATING", fill="white")
+            draw_centered_text(draw, "CALIBRATING")
             device.display(img)
 
-            fd = open("/dev/bmi160_device", "rb", buffering=0)
-            status = send_calibrate(fd)
+            status = send_calibrate()
+
+            img = Image.new("1", (128, 32), "black")
+            draw = ImageDraw.Draw(img)
+
 
             if status != 0:
-                img = Image.new("1", (128, 32), "black")
-                draw = ImageDraw.Draw(img)
-                draw.text((10, 5), "CALIBRATION\n BAD", fill="white")
-                device.display(img)
+                draw_centered_text(draw, "CALIBRATING\nFAILED")
             else:
-                img = Image.new("1", (128, 32), "black")
-                draw = ImageDraw.Draw(img)
-                draw.text((10, 5), "CALIBRATION\n SUCCESSFULL", fill="white")
-                device.display(img)
+                draw_centered_text(draw, "CALIBRATING\nSUCCESS")
+
+            device.display(img)
 
             time.sleep(2)
 
@@ -83,7 +93,9 @@ while True:
 
     img = Image.new("1", (128, 32), "black")
     draw = ImageDraw.Draw(img)
-    draw.text((10, 5), f"Pitch: {pitch:.2f}", fill="white")
+
+    text = f"{pitch:.2f}°"
+    draw_centered_text(draw, text)
     device.display(img)
 
     time.sleep(0.1)
