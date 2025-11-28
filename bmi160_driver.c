@@ -139,12 +139,12 @@ static int bmi160_init_sensor(void){
 	}
 
 	// set the accel range
-	i2c_smbus_write_byte_data(bmi_i2c_client, BMI160_ACCEL_RANGE_REGISTER, ACCEL_RANGE_2G);
+	ret = i2c_smbus_write_byte_data(bmi_i2c_client, BMI160_ACCEL_RANGE_REGISTER, ACCEL_RANGE_2G);
 
 	if (ret < 0){
 		printk(KERN_ERR "bmi160 - Failed to set the accel range");
 		return ret;
-	}
+	
 
 	return 0;
 }

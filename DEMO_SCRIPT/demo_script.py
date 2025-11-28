@@ -8,6 +8,8 @@ from PIL import Image, ImageDraw
 import math
 import time
 import os
+import RPi.GPIO as GPIO
+
 
 BMI160_IOC_MAGIC = ord('B')
 IOCTL_GET_ACCEL_X = 0x80024201  # _IOR(BMI160_IOC_MAGIC, 1, s16)
@@ -18,11 +20,17 @@ IOCTL_CALIBRATE_SENSOR = 0x80024204  # _IOR(BMI160_IOC_MAGIC, 4, s16)
 serial = i2c(port=0, address=0x3C)   # 0x3C is the address of oled display
 device = ssd1306(serial, width=128, height=32)
 
+BUTTON_PIN = 27
+GPIO.setmode(GPIO.BCM) # BCM = Broadcom SOC channel
+GPIO.setup(BUTTON_PIN, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+
+
 def read_accel(fd, ioctl_cmd):
     buf = bytearray(2)  # s16 = 2 bytes
     fcntl.ioctl(fd, ioctl_cmd, buf)
     val, = struct.unpack("h", buf)
     return val
+
 
 def send_calibrate():
     fd = open("/dev/bmi160_device", "rb", buffering=0)
@@ -30,6 +38,7 @@ def send_calibrate():
     fcntl.ioctl(fd, IOCTL_CALIBRATE_SENSOR, buf)
     val, = struct.unpack("h", buf)
     return val
+
 
 def draw_centered_text(draw, text):
     bbox = draw.textbbox((0, 0), text)
@@ -41,7 +50,8 @@ def draw_centered_text(draw, text):
 
     draw.text((x, y), text, fill="white")
 
-def get_pitch_roll():
+
+def get_pitch():
     fd = open("/dev/bmi160_device", "rb", buffering=0)
     ax = read_accel(fd, IOCTL_GET_ACCEL_X)
     ay = read_accel(fd, IOCTL_GET_ACCEL_Y)
@@ -52,42 +62,59 @@ def get_pitch_roll():
     ay_g = ay / 16384.0
     az_g = az / 16384.0
 
-    # Calculate pitch and roll
+    # Calculate pitch
     pitch = math.atan2(-ax_g, math.sqrt(ay_g**2 + az_g**2)) * 180.0 / math.pi
 
     return pitch
+
+
+def do_calibration():
+    img = Image.new("1", (128, 32), "black")
+    draw = ImageDraw.Draw(img)
+    draw_centered_text(draw, "CALIBRATING")
+    device.display(img)
+
+    status = send_calibrate()
+
+    img = Image.new("1", (128, 32), "black")
+    draw = ImageDraw.Draw(img)
+
+
+    if status != 0:
+        draw_centered_text(draw, "CALIBRATING\nFAILED")
+    else:
+        draw_centered_text(draw, "CALIBRATING\nSUCCESS")
+
+    device.display(img)
+
+    time.sleep(2)
+
+
+last_button_state = 1 # 1 = Button unpressed, 0 = Button pressed
+debounce_time = time.time()
 
 while True:
     if select.select([sys.stdin], [], [], 0)[0]:
         user_input = (sys.stdin.readline().strip()).lower()
 
         if user_input == "calibrate":
-
-            img = Image.new("1", (128, 32), "black")
-            draw = ImageDraw.Draw(img)
-            draw_centered_text(draw, "CALIBRATING")
-            device.display(img)
-
-            status = send_calibrate()
-
-            img = Image.new("1", (128, 32), "black")
-            draw = ImageDraw.Draw(img)
-
-
-            if status != 0:
-                draw_centered_text(draw, "CALIBRATING\nFAILED")
-            else:
-                draw_centered_text(draw, "CALIBRATING\nSUCCESS")
-
-            device.display(img)
-
-            time.sleep(2)
-
+            do_calibration()
+            
         if user_input == "exit":
             os._exit(0)
 
+    # read button state
+    button_state = GPIO.input(BUTTON_PIN)
+    # check if button is pressed but was unpressed before(Falling edge)
+    if button_state == 0 and last_button_state == 1:
+        # check debounce delay
+        if time.time() - debounce_time > 0.25:
+            do_calibration()
+            debounce_time = time.time()
+    last_button_state = button_state
+
     try:
-        pitch = get_pitch_roll()
+        pitch = get_pitch()
     except Exception as e:
         pitch = -10.00
 

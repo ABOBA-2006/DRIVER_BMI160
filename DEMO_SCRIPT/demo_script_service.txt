@@ -8,8 +8,8 @@ After=network.target
 [Service]
 Type=simple
 User=anton
-WorkingDirectory=/home/anton/DRIVER_BMI160/DEMO_SCRYPT
-ExecStart=/home/anton/DRIVER_BMI160/DEMO_SCRYPT/venv/bin/python demo_scrypt.py
+WorkingDirectory=/home/anton/DRIVER_BMI160/DEMO_SCRIPT
+ExecStart=/home/anton/DRIVER_BMI160/DEMO_SCRIPT/venv/bin/python demo_script.py
 Restart=always
 RestartSec=5
 StandardOutput=syslog

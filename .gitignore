@@ -6,6 +6,6 @@
 *.symvers
 *.mod
 .vscode/
-DEMO_SCRYPT/venv/
+DEMO_SCRIPT/venv/
 *.h.swp
-EXTRA_SCRYPT/test
+EXTRA_SCRIPT/test
