@@ -45,7 +45,7 @@ static long int ioctl_dev_file(struct file *f, unsigned int cmd, unsigned long a
 	switch (cmd){
 		case IOCTL_GET_ACCEL_X:{
 			printk(KERN_INFO "bmi160 - GET_ACCEL_X is called");
-			s16 accel_x = read_accel_axis(BMI160_ACCEL_X_REGISTER);
+			s16 accel_x = read_accel_gyro_axis(BMI160_ACCEL_X_REGISTER);
 			if (copy_to_user((s16 __user *)args, &accel_x, sizeof(s16)))
 				return -EFAULT; // failed to copy data to user space
 			break;
@@ -53,7 +53,7 @@ static long int ioctl_dev_file(struct file *f, unsigned int cmd, unsigned long a
 
 		case IOCTL_GET_ACCEL_Y:{
 			printk(KERN_INFO "bmi160 - GET_ACCEL_Y is called");
-			s16 accel_y = read_accel_axis(BMI160_ACCEL_Y_REGISTER);
+			s16 accel_y = read_accel_gyro_axis(BMI160_ACCEL_Y_REGISTER);
 			if (copy_to_user((s16 __user *)args, &accel_y, sizeof(s16)))
 				return -EFAULT; // failed to copy data to user space
 			break;
@@ -61,7 +61,7 @@ static long int ioctl_dev_file(struct file *f, unsigned int cmd, unsigned long a
 
 		case IOCTL_GET_ACCEL_Z:{
 			printk(KERN_INFO "bmi160 - GET_ACCEL_Z is called");
-			s16 accel_z = read_accel_axis(BMI160_ACCEL_Z_REGISTER);
+			s16 accel_z = read_accel_gyro_axis(BMI160_ACCEL_Z_REGISTER);
 			if (copy_to_user((s16 __user *)args, &accel_z, sizeof(s16)))
 				return -EFAULT; // failed to copy data to user space
 			break;
@@ -74,7 +74,31 @@ static long int ioctl_dev_file(struct file *f, unsigned int cmd, unsigned long a
 				return -EFAULT; // failed to copy data to user space
 			break;
 		}
-			
+
+		case IOCTL_GET_GYRO_X:{
+			printk(KERN_INFO "bmi160 - GET_GYRO_X is called");
+			s16 gyro_x = read_accel_gyro_axis(BMI160_GYRO_X_REGISTER);
+			if (copy_to_user((s16 __user *)args, &gyro_x, sizeof(s16)))
+				return -EFAULT; // failed to copy data to user space
+			break;
+		}		
+		
+		case IOCTL_GET_GYRO_Y:{
+			printk(KERN_INFO "bmi160 - GET_GYRO_Y is called");
+			s16 gyro_y = read_accel_gyro_axis(BMI160_GYRO_Y_REGISTER);
+			if (copy_to_user((s16 __user *)args, &gyro_y, sizeof(s16)))
+				return -EFAULT; // failed to copy data to user space
+			break;
+		}	
+		
+		case IOCTL_GET_GYRO_Z:{
+			printk(KERN_INFO "bmi160 - GET_GYRO_Z is called");
+			s16 gyro_z = read_accel_gyro_axis(BMI160_GYRO_Z_REGISTER);
+			if (copy_to_user((s16 __user *)args, &gyro_z, sizeof(s16)))
+				return -EFAULT; // failed to copy data to user space
+			break;
+		}	
+
 		default:
 			return -EOPNOTSUPP; // command not supported
 	}
@@ -103,7 +127,7 @@ static struct file_operations fops = {
 
 /* ------------------ ADDITIONAL FUNCTIONS ------------------ */
 
-s16 read_accel_axis(u8 register_low){
+s16 read_accel_gyro_axis(u8 register_low){
 	u8 low = i2c_smbus_read_byte_data(bmi_i2c_client, register_low);
 	u8 high = i2c_smbus_read_byte_data(bmi_i2c_client, register_low + 1);
 	return (s16)((high << 8) | low);
@@ -144,7 +168,15 @@ static int bmi160_init_sensor(void){
 	if (ret < 0){
 		printk(KERN_ERR "bmi160 - Failed to set the accel range");
 		return ret;
+	}
 	
+	// set the gyro range	
+	ret = i2c_smbus_write_byte_data(bmi_i2c_client, BMI160_GYRO_RANGE_REGISTER, GYRO_RANGE_500DPS);
+	
+	if (ret < 0){
+		printk(KERN_ERR "bmi160 - Failed to set the gyro range");
+		return ret;
+	}
 
 	return 0;
 }
@@ -157,7 +189,7 @@ static int bmi160_calibrate_sensor(void){
 	mdelay(pre_cal_delay);
 
 	// set the FOC->enable to config (FOC = Fast Offset Compensation)
-	ret = i2c_smbus_write_byte_data(bmi_i2c_client, BMI160_FOC_CONF_REGISTER, ENABLE_ACCEL_FOC);
+	ret = i2c_smbus_write_byte_data(bmi_i2c_client, BMI160_FOC_CONF_REGISTER, ENABLE_FOC);
 
 	if (ret < 0){
 		printk(KERN_ERR "bmi160 - Failed to set the foc enable");
@@ -174,10 +206,11 @@ static int bmi160_calibrate_sensor(void){
 
 	mdelay(cal_delay);
 
-	ret = i2c_smbus_write_byte_data(bmi_i2c_client, BMI160_ACCEL_OFFSET_USE_REGISTER, USE_ACCEL_OFFSET);
+	// set the flag to use accel ang gyro calibrate data (offsets)
+	ret = i2c_smbus_write_byte_data(bmi_i2c_client, BMI160_OFFSET_USE_REGISTER, USE_ACCEL_GYRO_OFFSET);
 
 	if (ret < 0){
-		printk(KERN_ERR "bmi160 - Failed to enable using accel offsets");
+		printk(KERN_ERR "bmi160 - Failed to enable using accel and gyro offsets");
 		return ret;
 	}
 

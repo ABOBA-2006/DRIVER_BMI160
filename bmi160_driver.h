@@ -38,24 +38,32 @@ MODULE_VERSION("0.1b");
 #define IOCTL_GET_ACCEL_Y _IOR(BMI160_IOCTL_MAGIC, 2, s16)
 #define IOCTL_GET_ACCEL_Z _IOR(BMI160_IOCTL_MAGIC, 3, s16)
 #define IOCTL_CALIBRATE_SENSOR _IOR(BMI160_IOCTL_MAGIC, 4, s16)
+#define IOCTL_GET_GYRO_X _IOR(BMI160_IOCTL_MAGIC, 5, s16)
+#define IOCTL_GET_GYRO_Y _IOR(BMI160_IOCTL_MAGIC, 6, s16)
+#define IOCTL_GET_GYRO_Z _IOR(BMI160_IOCTL_MAGIC, 7, s16)
 
 /* BMI160 register adresses */
 #define BMI160_ACCEL_X_REGISTER 0x12
 #define BMI160_ACCEL_Y_REGISTER 0x14
 #define BMI160_ACCEL_Z_REGISTER 0x16
+#define BMI160_GYRO_X_REGISTER 0x0C
+#define BMI160_GYRO_Y_REGISTER 0x0E
+#define BMI160_GYRO_Z_REGISTER 0x10
 #define BMI160_MODE_REGISTER 0x7E
 #define BMI160_CONF_REGISTER 0x40
 #define BMI160_ACCEL_RANGE_REGISTER 0x41
+#define BMI160_GYRO_RANGE_REGISTER 0x43
 #define BMI160_FOC_CONF_REGISTER 0x69
-#define BMI160_ACCEL_OFFSET_USE_REGISTER 0x77
+#define BMI160_OFFSET_USE_REGISTER 0x77
 
 /* BMI160 register values */
 #define NORMAL_MODE 0x11
 #define FOC_MODE 0x03
 #define ACCEL_RANGE_2G 0x03 
+#define GYRO_RANGE_500DPS 0x02
 #define UPDATE_100HZ 0x28
-#define ENABLE_ACCEL_FOC 0x3D
-#define USE_ACCEL_OFFSET 0x40
+#define ENABLE_FOC 0x7D
+#define USE_ACCEL_GYRO_OFFSET 0xC0
 
 /* ------------------ FILE OPERATIONS PROTOTYPES ------------------ */
 
@@ -88,7 +96,7 @@ static int release_dev_file(struct inode *node, struct file *f);
 /* ------------------ ADDITIONAL FUNCTIONS PROTOTYPES ------------------ */
 
 /* read accel axis from bmi160 imu sensor */
-s16 read_accel_axis(u8 register_low);
+s16 read_accel_gyro_axis(u8 register_low);
 
 /* function to set the file permissions  */
 static char *bmi160_devnode(const struct device *dev, umode_t *mode);
