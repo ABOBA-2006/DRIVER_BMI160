@@ -9,7 +9,7 @@ import math
 import time
 import os
 import RPi.GPIO as GPIO
-
+from kalman import Kalman
 
 BMI160_IOC_MAGIC = ord('B')
 IOCTL_GET_ACCEL_X = 0x80024201  # _IOR(BMI160_IOC_MAGIC, 1, s16)
@@ -28,6 +28,8 @@ GPIO.setmode(GPIO.BCM) # BCM = Broadcom SOC channel
 GPIO.setup(BUTTON_PIN, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 
 GYRO_SCALE_500 = 65.5 # convert 500 dps to lsb/(deg/s)
+
+kalman = Kalman()
 
 
 def read_axis(fd, ioctl_cmd):
@@ -78,17 +80,16 @@ def get_pitch():
     last_time = now
 
     # convert raw gyro y to rate
-    rate_y = gy / GYRO_SCALE_500
+    rate_y = gy / GYRO_SCALE_500 
 
     # Calculate pitch via accel data
-    pitch = math.atan2(-ax_g, math.sqrt(ay_g**2 + az_g**2)) * 180.0 / math.pi
+    accel_pitch = math.atan2(-ax_g, math.sqrt(ay_g**2 + az_g**2)) * 180.0 / math.pi
 
-    # calculate pitch via gyro data
-    current_gyro_pitch = current_gyro_pitch + (rate_y * dt)
-    
+    filtered_pitch = kalman.compute(accel_pitch, rate_y, dt)
+
     fd.close()
 
-    return pitch, current_gyro_pitch
+    return filtered_pitch
 
 
 def do_calibration():
@@ -116,7 +117,6 @@ def do_calibration():
 last_button_state = 1 # 1 = Button unpressed, 0 = Button pressed
 debounce_time = time.time()
 
-current_gyro_pitch = 0.0
 last_time = time.time()
 
 while True:
@@ -140,7 +140,7 @@ while True:
     last_button_state = button_state
 
     try:
-        pitch, gyro_pitch = get_pitch()
+        pitch = get_pitch()
     except Exception as e:
         img = Image.new("1", (128, 32), "black")
         draw = ImageDraw.Draw(img)
@@ -156,9 +156,7 @@ while True:
     draw = ImageDraw.Draw(img)
 
     text = f"{pitch:.2f}°"
-    draw_centered_text(draw, text)
-    text = f"{gyro_pitch:.2f}"
-    draw.text((0,0), text, fill="white")
+    draw_centered_text(draw, text) 
     device.display(img)
 
     time.sleep(0.1)

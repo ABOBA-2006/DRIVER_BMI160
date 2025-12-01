@@ -9,3 +9,4 @@
 DEMO_SCRIPT/venv/
 *.h.swp
 EXTRA_SCRIPT/test
+DEMO_SCRIPT/__pycache__
