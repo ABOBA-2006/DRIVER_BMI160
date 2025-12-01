@@ -140,25 +140,47 @@ static char *bmi160_devnode(const struct device *dev, umode_t *mode){
 }
 
 static int bmi160_init_sensor(void){
-	const int init_delay = 50; // small delay after mode set
+	const int init_delay = 100; // small delay after mode set
 	int ret;
 
-	// set the normal mode
-	ret = i2c_smbus_write_byte_data(bmi_i2c_client, BMI160_MODE_REGISTER, NORMAL_MODE);
+	// small delat to give some time for bmi160 on cold boot
+	mdelay(init_delay);
+
+	// set the accel normal mode
+	ret = i2c_smbus_write_byte_data(bmi_i2c_client, BMI160_MODE_REGISTER, ACCEL_NORMAL_MODE);
 
 	if (ret < 0){
-		printk(KERN_ERR "bmi160 - Failed to set the mode to sensor");
+		printk(KERN_ERR "bmi160 - Failed to set the accel start");
+		return ret;
+	}
+
+	// small delay to give some time to properly init the accel
+	mdelay(init_delay);
+
+	// set the gyro normal mode
+	ret = i2c_smbus_write_byte_data(bmi_i2c_client, BMI160_MODE_REGISTER, GYRO_NORMAL_MODE);
+
+	if (ret < 0){
+		printk(KERN_ERR "bmi160 - Failed to set the gyro start");
 		return ret;
 	}
 		
-	// small delay to give some time for BMI160 to initialize properly
+	// small delay to give some time to properly init the gyro
 	mdelay(init_delay);
 
-	// set the update frequency
-	ret = i2c_smbus_write_byte_data(bmi_i2c_client, BMI160_CONF_REGISTER, UPDATE_100HZ);
+	// set the update frequency for accel
+	ret = i2c_smbus_write_byte_data(bmi_i2c_client, BMI160_ACCEL_CONF_REGISTER, ACCEL_UPDATE_100HZ);
 
 	if (ret < 0){
-		printk(KERN_ERR "bmi160 - Failed to set the update frequency");
+		printk(KERN_ERR "bmi160 - Failed to set the update frequency for accel");
+		return ret;
+	}
+
+	// set the update frequency for gyro
+	ret = i2c_smbus_write_byte_data(bmi_i2c_client, BMI160_GYRO_CONF_REGISTER, GYRO_UPDATE_100HZ);
+
+	if (ret < 0){
+		printk(KERN_ERR "bmi160 - Failed to set the update frequency for gyro");
 		return ret;
 	}
 

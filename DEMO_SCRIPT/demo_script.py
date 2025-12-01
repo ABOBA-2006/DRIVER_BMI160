@@ -58,6 +58,9 @@ def draw_centered_text(draw, text):
 
 
 def get_pitch():
+    global last_time
+    global current_gyro_pitch
+
     fd = open("/dev/bmi160_device", "rb", buffering=0)
     ax = read_axis(fd, IOCTL_GET_ACCEL_X)
     ay = read_axis(fd, IOCTL_GET_ACCEL_Y)
@@ -75,7 +78,7 @@ def get_pitch():
     last_time = now
 
     # convert raw gyro y to rate
-    rate_y = gy / GYRO_SCALE
+    rate_y = gy / GYRO_SCALE_500
 
     # Calculate pitch via accel data
     pitch = math.atan2(-ax_g, math.sqrt(ay_g**2 + az_g**2)) * 180.0 / math.pi
@@ -155,7 +158,7 @@ while True:
     text = f"{pitch:.2f}°"
     draw_centered_text(draw, text)
     text = f"{gyro_pitch:.2f}"
-    draw_text((0,0), text, fill="white")
+    draw.text((0,0), text, fill="white")
     device.display(img)
 
     time.sleep(0.1)
