@@ -200,6 +200,12 @@ static int bmi160_init_sensor(void){
 		return ret;
 	}
 
+	ret = bmi160_calibrate_sensor();
+	if (ret < 0){
+		printk(KERN_ERR "bmi160 - Failed to finish start-calibration");
+		return ret;
+	}
+
 	return 0;
 }
 
